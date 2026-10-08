@@ -1,0 +1,32 @@
+name: Refresh official Sonoda data
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: sonoda-official-refresh
+  cancel-in-progress: false
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests beautifulsoup4
+      - name: Fetch official cards, odds and conditions
+        run: python scripts/refresh_official.py
+      - name: Publish updated data to GitHub Pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data/official.json
+          if git diff --cached --quiet; then
+            echo "Official data is unchanged."
+          else
+            git commit -m "Refresh official Sonoda race data"
+            git push
+          fi
